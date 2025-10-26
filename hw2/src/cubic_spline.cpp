@@ -1,48 +1,37 @@
+#include <algorithm>
 #include <cmath>
+#include <iterator>
+#include <sstream>
 #include <stdexcept>
+
 #include "cubic_spline.h"
 
 CubicSpline::CubicSpline(const std::vector<double>& x,
                          const std::vector<double>& y)
+    : xValues_(std::move(x)), yValues_(std::move(y)),
+      numberOfPoints_(xValues_.size())
 {
-    if (x.size() != y.size() || x.size() < 2)
-    {
-        throw std::invalid_argument("Invalid input: x and y must have the same "
-                                    "size and at least 2 points");
-    }
-
-    // Copy input data
-    x_values = x;
-    y_values = y;
-    n = x.size();
+    // Validate inputs (size, finiteness, strictly increasing x)
+    checkInputs();
 
     // Initialize coefficient vectors
-    a_coeffs.resize(n - 1);
-    b_coeffs.resize(n - 1);
-    c_coeffs.resize(n);
-    d_coeffs.resize(n - 1);
+    aCoeffs_.resize(numberOfPoints_ - 1);
+    bCoeffs_.resize(numberOfPoints_ - 1);
+    cCoeffs_.resize(numberOfPoints_ - 1);
+    dCoeffs_.resize(numberOfPoints_ - 1);
 
-    h_values.resize(n - 1);
+    hValues_.resize(numberOfPoints_ - 1);
 
-    // Calculate h values (intervals)
-    for (int i = 0; i < n - 1; ++i)
+    // Calculate h values (intervals) — increasing order already validated
+    for (std::size_t i = 0; i + 1 < static_cast<std::size_t>(numberOfPoints_);
+         ++i)
     {
-        h_values[i] = x_values[i + 1] - x_values[i];
-        if (h_values[i] <= 0)
-        {
-            throw std::invalid_argument(
-                "x values must be in strictly increasing order");
-        }
+        hValues_[i] = xValues_[i + 1] - xValues_[i];
     }
 
     // Initialize boundary conditions
-    natural_boundary = true;
-    boundary_set = false;
-}
-
-CubicSpline::~CubicSpline()
-{
-    // Cleanup if needed
+    naturalBoundary_ = true;
+    boundarySet_ = false;
 }
 
 void CubicSpline::solve()
@@ -51,6 +40,7 @@ void CubicSpline::solve()
     setupSystem();
 
     // Solve the tridiagonal system to find c coefficients
+    // TDMA algorithm
     solveTridiagonal();
 
     // Compute b and d coefficients
@@ -59,19 +49,31 @@ void CubicSpline::solve()
 
 void CubicSpline::setupSystem()
 {
-    // Set up the tridiagonal matrix system Ac = r for the c coefficients
-    // This method will populate the matrix coefficients based on boundary
-    // conditions
+    const auto n = numberOfPoints_;
 
-    if (natural_boundary)
+    switch (boundaryType_)
     {
-        // Natural spline: second derivatives at endpoints are zero
-        // This means c[0] = 0 and c[n-1] = 0
-    }
-    else
-    {
-        // Clamped spline: derivatives at endpoints are given
-        // This means we'll have different equations for the first and last rows
+    case BoundaryType::Natural:
+        // Natural boundary conditions (second derivatives at endpoints are
+        // zero)
+        setupSystemNatural();
+        break;
+
+    case BoundaryType::Clamped:
+        // Clamped boundary conditions (first derivatives at endpoints are
+        // specified)
+        setupSystemClamped();
+        break;
+
+    case BoundaryType::NotAKnot:
+        // Not-a-knot boundary conditions (third derivative is continuous at the
+        // second point)
+        setupSystemNotAKnot();
+        break;
+
+    default:
+        throw std::invalid_argument("Invalid boundary condition");
+        break;
     }
 }
 
@@ -100,23 +102,95 @@ double CubicSpline::evaluate(double x) const
 std::vector<std::vector<double>> CubicSpline::getCoefficients() const
 {
     std::vector<std::vector<double>> result(4);
-    result[0] = a_coeffs;
-    result[1] = b_coeffs;
-    result[2] = c_coeffs;
-    result[3] = d_coeffs;
+    result[0] = aCoeffs_;
+    result[1] = bCoeffs_;
+    result[2] = cCoeffs_;
+    result[3] = dCoeffs_;
     return result;
 }
 
-void CubicSpline::setBoundaryConditions(double left_slope, double right_slope)
+void CubicSpline::setBoundaryConditions(BoundaryType type, double firstValue,
+                                        double secondValue)
 {
-    natural_boundary = false;
-    left_slope = left_slope;
-    right_slope = right_slope;
-    boundary_set = true;
+    boundaryType_ = type;
+    boundarySet_ = true;
+
+    switch (type)
+    {
+    case BoundaryType::Natural:
+        // 不需要额外参数
+        naturalBoundary_ = true;
+        break;
+
+    case BoundaryType::Clamped:
+        naturalBoundary_ = false;
+        leftSlope_ = firstValue;
+        rightSlope_ = secondValue;
+        break;
+
+    case BoundaryType::NotAKnot:
+        // 不需要额外参数
+        naturalBoundary_ = false;
+        break;
+    }
 }
 
-void CubicSpline::setNaturalBoundary()
+
+void CubicSpline::checkInputs() const
 {
-    natural_boundary = true;
-    boundary_set = true;
+    const auto n = xValues_.size();
+
+    if (n != yValues_.size())
+    {
+        throw std::invalid_argument(
+            "Invalid input: x and y must have the same size");
+    }
+    if (n < 2)
+    {
+        throw std::invalid_argument(
+            "Invalid input: need at least 2 data points");
+    }
+
+    // Check finiteness (no NaN/Inf)
+    for (auto x : xValues_)
+    {
+        if (!std::isfinite(x))
+        {
+            throw std::invalid_argument("Invalid input: x must be finite");
+        }
+    }
+    for (auto y : yValues_)
+    {
+        if (!std::isfinite(y))
+        {
+            throw std::invalid_argument("Invalid input: y must be finite");
+        }
+    }
+
+    // Check strictly increasing x values
+    for (std::size_t i = 1; i < n; ++i)
+    {
+        if (xValues_[i + 1] <= xValues_[i])
+        {
+            std::ostringstream oss;
+            oss << "x[" << i << "] = " << xValues_[i] << " is not less than x["
+                << i + 1 << "] = " << xValues_[i + 1];
+            throw std::invalid_argument(oss.str());
+        }
+    }
+}
+
+void CubicSpline::setupSystemNatural()
+{
+
+}
+
+void CubicSpline::setupSystemClamped()
+{
+
+}
+
+void CubicSpline::setupSystemNotAKnot()
+{
+    
 }

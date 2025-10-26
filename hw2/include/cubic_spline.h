@@ -5,12 +5,29 @@
 
 class CubicSpline
 {
+
+public:
+    enum class BoundaryType
+    {
+        Natural,
+        Clamped,
+        NotAKnot
+    };
+
+private:
+    BoundaryType boundaryType_;
+    double leftSlope_;
+    double rightSlope_;
+    double leftSecondDerivative_;
+    double rightSecondDerivative_;
+    
+
 public:
     // Constructor
     CubicSpline(const std::vector<double>& x, const std::vector<double>& y);
 
     // Destructor
-    ~CubicSpline();
+    ~CubicSpline() = default;
 
     // Main solving function
     void solve();
@@ -22,8 +39,8 @@ public:
     std::vector<std::vector<double>> getCoefficients() const;
 
     // Set boundary conditions
-    void setBoundaryConditions(double left_slope,
-                               double right_slope); // Clamped
+    void setBoundaryConditions(BoundaryType type, double firstValue,
+                               double secondValue);
     void setNaturalBoundary(); // Natural (second derivative = 0 at endpoints)
 
 private:
@@ -38,16 +55,22 @@ private:
     std::vector<double> cCoeffs_; // c coefficients
     std::vector<double> dCoeffs_; // d coefficients
 
-    int numberOfPoints_;          // number of data points
-    bool naturalBoundary_;        // flag for natural boundary condition
-    double leftSlope_, rightSlope_; // boundary slopes for clamped conditions
-    bool boundarySet_;            // flag indicating if boundary conditions were set
+    int numberOfPoints_; // number of data points
+    bool boundarySet_;   // flag to check if boundary conditions are set
+    bool naturalBoundary_; // flag for natural boundary condition
 
     // Helper methods
     void setupSystem();      // Set up the tridiagonal system
     void solveTridiagonal(); // Solve the tridiagonal system for c coefficients
     void computeCoefficients(); // Compute b and d coefficients from c
                                 // coefficients
+    void checkInputs()
+        const; // Validate input data (sizes, finiteness, strict monotonicity)
+
+    // setupSystem with boundary conditions
+    void setupSystemNatural();
+    void setupSystemClamped();
+    void setupSystemNotAKnot();
 };
 
 #endif // CUBIC_SPLINE_H
