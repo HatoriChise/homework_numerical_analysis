@@ -55,6 +55,12 @@ private:
     std::vector<double> cCoeffs_; // c coefficients
     std::vector<double> dCoeffs_; // d coefficients
 
+    // Tridiagonal system components
+    std::vector<double> lowerDiag_; // lower diagonal (sub-diagonal)
+    std::vector<double> mainDiag_;  // main diagonal
+    std::vector<double> upperDiag_; // upper diagonal (super-diagonal)
+    std::vector<double> rhs_;       // right-hand side vector
+
     int numberOfPoints_; // number of data points
     bool boundarySet_;   // flag to check if boundary conditions are set
     bool naturalBoundary_; // flag for natural boundary condition

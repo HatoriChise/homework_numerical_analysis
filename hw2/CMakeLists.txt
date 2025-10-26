@@ -13,6 +13,11 @@ set(SOURCES
     src/main.cpp
 )
 
+# Library sources (without main)
+set(CORE_SOURCES
+    src/cubic_spline.cpp
+)
+
 # Header files
 set(HEADERS
     include/cubic_spline.h
@@ -26,7 +31,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(cubic_spline PRIVATE -Wall -Wextra -O3)
 endif()
 
-# Create test executable
+# Create test executable (link only core sources, avoid main.cpp)
 set(TEST_SOURCES tests/test_cubic_spline.cpp)
-add_executable(test_cubic_spline ${TEST_SOURCES} ${SOURCES})
+add_executable(test_cubic_spline ${TEST_SOURCES} ${CORE_SOURCES})
 target_include_directories(test_cubic_spline PRIVATE include)

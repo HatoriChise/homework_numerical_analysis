@@ -12,6 +12,8 @@
         "momentumTransport": "OpenFOAM",
         "thermophysicalTransport": "OpenFOAM",
         "iomanip": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "stdexcept": "cpp",
+        "vector": "cpp"
     }
 }

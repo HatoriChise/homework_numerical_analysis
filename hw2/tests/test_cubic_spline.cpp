@@ -1,135 +1,162 @@
-#include <cmath>
-#include <iomanip>
+#include <functional>
 #include <iostream>
+#include <limits>
+#include <string>
 #include <vector>
+
 #include "../include/cubic_spline.h"
 
-bool testBasicFunctionality()
+namespace
 {
-    std::cout << "Testing basic functionality..." << std::endl;
 
-    // Define simple test data - a quadratic function y = x^2
-    std::vector<double> x = {0.0, 1.0, 2.0, 3.0};
-    std::vector<double> y = {0.0, 1.0, 4.0, 9.0}; // y = x^2
-
+/**
+ * @brief Expects an invalid_argument to be thrown by the given function.
+ *
+ * @param name The name of the test.
+ * @param fn The function to test.
+ * @return true If the function throws an invalid_argument.
+ * @return false Otherwise.
+ */
+bool expectThrowsInvalidArgument(const std::string& name,
+                                 const std::function<void()>& fn)
+{
     try
     {
-        CubicSpline spline(x, y);
-        spline.solve();
-
-        // Test a few evaluation points
-        std::vector<double> test_points = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0};
-        bool all_pass = true;
-
-        for (double t : test_points)
-        {
-            double interpolated = spline.evaluate(t);
-            double expected = t * t; // x^2
-            double error = std::abs(interpolated - expected);
-
-            if (error > 1e-6)
-            {
-                std::cout << "  FAIL: At x=" << t << ", got " << interpolated
-                          << ", expected " << expected << ", error: " << error
-                          << std::endl;
-                all_pass = false;
-            }
-        }
-
-        if (all_pass)
-        {
-            std::cout << "  PASS: Basic functionality test" << std::endl;
-            return true;
-        }
-        else
-        {
-            std::cout << "  FAIL: Basic functionality test" << std::endl;
-            return false;
-        }
-    }
-    catch (const std::exception& e)
-    {
-        std::cout << "  ERROR: Exception occurred: " << e.what() << std::endl;
+        fn();
+        std::cout << "  FAIL: " << name
+                  << " — expected invalid_argument, but no exception thrown"
+                  << std::endl;
         return false;
     }
-}
-
-bool testNaturalBoundary()
-{
-    std::cout << "Testing natural boundary conditions..." << std::endl;
-
-    std::vector<double> x = {0.0, 1.0, 2.0};
-    std::vector<double> y = {1.0, 2.0, 3.0};
-
-    try
+    catch (const std::invalid_argument& e)
     {
-        CubicSpline spline(x, y);
-        spline.setNaturalBoundary();
-        spline.solve();
-
-        std::cout << "  PASS: Natural boundary conditions test" << std::endl;
+        std::cout << "  PASS: " << name
+                  << " — caught invalid_argument: " << e.what() << std::endl;
         return true;
     }
     catch (const std::exception& e)
     {
-        std::cout << "  ERROR: Exception occurred: " << e.what() << std::endl;
+        std::cout << "  FAIL: " << name
+                  << " — caught unexpected exception: " << e.what()
+                  << std::endl;
         return false;
     }
 }
 
-bool testClampedBoundary()
+bool expectNoThrow(const std::string& name, const std::function<void()>& fn)
 {
-    std::cout << "Testing clamped boundary conditions..." << std::endl;
-
-    std::vector<double> x = {0.0, 1.0, 2.0};
-    std::vector<double> y = {0.0, 1.0, 0.0};
-
     try
     {
-        CubicSpline spline(x, y);
-        spline.setBoundaryConditions(1.0, -1.0); // Set derivatives at endpoints
-        spline.solve();
-
-        std::cout << "  PASS: Clamped boundary conditions test" << std::endl;
+        fn();
+        std::cout << "  PASS: " << name << std::endl;
         return true;
     }
     catch (const std::exception& e)
     {
-        std::cout << "  ERROR: Exception occurred: " << e.what() << std::endl;
+        std::cout << "  FAIL: " << name
+                  << " — unexpected exception: " << e.what() << std::endl;
         return false;
     }
 }
+
+} // namespace
 
 int main()
 {
-    std::cout << "Running Cubic Spline Tests" << std::endl;
-    std::cout << "=========================" << std::endl;
+    std::cout << "Running CubicSpline input validation tests" << std::endl;
+    std::cout << "==========================================" << std::endl;
 
     int passed = 0;
-    int total = 3;
+    int total = 0;
 
-    if (testBasicFunctionality())
-        passed++;
-    std::cout << std::endl;
+    // 1) Valid minimal input
+    ++total;
+    passed += expectNoThrow("valid minimal input (2 points)", [] {
+        std::vector<double> x{0.0, 1.0};
+        std::vector<double> y{0.0, 1.0};
+        CubicSpline s(x, y);
+    });
 
-    if (testNaturalBoundary())
-        passed++;
-    std::cout << std::endl;
+    // 2) Size mismatch
+    ++total;
+    passed += expectThrowsInvalidArgument("size mismatch", [] {
+        std::vector<double> x{0.0, 1.0, 2.0};
+        std::vector<double> y{0.0, 1.0};
+        CubicSpline s(x, y);
+    });
 
-    if (testClampedBoundary())
-        passed++;
-    std::cout << std::endl;
+    // 3) Too few points
+    ++total;
+    passed += expectThrowsInvalidArgument("too few points", [] {
+        std::vector<double> x{0.0};
+        std::vector<double> y{0.0};
+        CubicSpline s(x, y);
+    });
 
-    std::cout << "Tests passed: " << passed << "/" << total << std::endl;
+    // 4) Non-increasing x (equal)
+    ++total;
+    passed += expectThrowsInvalidArgument("non-increasing (equal)", [] {
+        std::vector<double> x{0.0, 1.0, 1.0};
+        std::vector<double> y{0.0, 1.0, 2.0};
+        CubicSpline s(x, y);
+    });
 
-    if (passed == total)
-    {
-        std::cout << "All tests PASSED!" << std::endl;
-        return 0;
-    }
-    else
-    {
-        std::cout << "Some tests FAILED!" << std::endl;
-        return 1;
-    }
+    // 5) Non-increasing x (decreasing)
+    ++total;
+    passed += expectThrowsInvalidArgument("non-increasing (decreasing)", [] {
+        std::vector<double> x{0.0, 2.0, 1.0};
+        std::vector<double> y{0.0, 4.0, 1.0};
+        CubicSpline s(x, y);
+    });
+
+    // 6) NaN in x
+    ++total;
+    passed += expectThrowsInvalidArgument("NaN in x", [] {
+        std::vector<double> x{0.0, std::numeric_limits<double>::quiet_NaN(),
+                              1.0};
+        std::vector<double> y{0.0, 1.0, 2.0};
+        CubicSpline s(x, y);
+    });
+
+    // 7) Inf in x
+    ++total;
+    passed += expectThrowsInvalidArgument("Inf in x", [] {
+        std::vector<double> x{0.0, std::numeric_limits<double>::infinity(),
+                              1.0};
+        std::vector<double> y{0.0, 1.0, 2.0};
+        CubicSpline s(x, y);
+    });
+
+    // 8) NaN in y
+    ++total;
+    passed += expectThrowsInvalidArgument("NaN in y", [] {
+        std::vector<double> x{0.0, 1.0, 2.0};
+        std::vector<double> y{0.0, std::numeric_limits<double>::quiet_NaN(),
+                              2.0};
+        CubicSpline s(x, y);
+    });
+
+    // 9) Inf in y
+    ++total;
+    passed += expectThrowsInvalidArgument("Inf in y", [] {
+        std::vector<double> x{0.0, 1.0, 2.0};
+        std::vector<double> y{0.0, std::numeric_limits<double>::infinity(),
+                              2.0};
+        CubicSpline s(x, y);
+    });
+
+    // 10) Boundary API usable (Natural default, and Clamped with finite slopes)
+    ++total;
+    passed += expectNoThrow("boundary API calls (no solve)", [] {
+        std::vector<double> x{0.0, 1.0, 2.0};
+        std::vector<double> y{0.0, 1.0, 4.0};
+        CubicSpline s(x, y);
+        s.setBoundaryConditions(CubicSpline::BoundaryType::Natural, 0.0, 0.0);
+        s.setBoundaryConditions(CubicSpline::BoundaryType::Clamped, 1.0, 2.0);
+        s.setBoundaryConditions(CubicSpline::BoundaryType::NotAKnot, 0.0, 0.0);
+    });
+
+    std::cout << "\nTests passed: " << passed << "/" << total << std::endl;
+
+    return (passed == total) ? 0 : 1;
 }

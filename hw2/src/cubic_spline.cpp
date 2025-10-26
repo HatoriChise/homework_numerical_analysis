@@ -8,9 +8,16 @@
 
 CubicSpline::CubicSpline(const std::vector<double>& x,
                          const std::vector<double>& y)
-    : xValues_(std::move(x)), yValues_(std::move(y)),
-      numberOfPoints_(xValues_.size())
+    : xValues_(x), yValues_(y), hValues_(), aCoeffs_(), bCoeffs_(), cCoeffs_(),
+      dCoeffs_(), lowerDiag_(), mainDiag_(), upperDiag_(), rhs_(),
+      numberOfPoints_(static_cast<int>(x.size())), boundarySet_(false),
+      naturalBoundary_(true)
 {
+    // Default boundary: Natural
+    boundaryType_ = BoundaryType::Natural;
+    leftSlope_ = rightSlope_ = 0.0;
+    leftSecondDerivative_ = rightSecondDerivative_ = 0.0;
+
     // Validate inputs (size, finiteness, strictly increasing x)
     checkInputs();
 
@@ -49,8 +56,6 @@ void CubicSpline::solve()
 
 void CubicSpline::setupSystem()
 {
-    const auto n = numberOfPoints_;
-
     switch (boundaryType_)
     {
     case BoundaryType::Natural:
@@ -167,30 +172,114 @@ void CubicSpline::checkInputs() const
         }
     }
 
-    // Check strictly increasing x values
-    for (std::size_t i = 1; i < n; ++i)
+    // Check strictly increasing x values using adjacent comparison
+    for (std::size_t i = 0; i + 1 < n; ++i)
     {
-        if (xValues_[i + 1] <= xValues_[i])
+        if (!(xValues_[i + 1] > xValues_[i]))
         {
             std::ostringstream oss;
-            oss << "x[" << i << "] = " << xValues_[i] << " is not less than x["
-                << i + 1 << "] = " << xValues_[i + 1];
+            oss << "Invalid input: x must be strictly increasing. Found x[" << i
+                << "] = " << xValues_[i] << ", x[" << (i + 1)
+                << "] = " << xValues_[i + 1];
             throw std::invalid_argument(oss.str());
         }
     }
 }
 
-void CubicSpline::setupSystemNatural()
-{
-
-}
-
 void CubicSpline::setupSystemClamped()
 {
+    // Set up the system of equations for clamped boundary conditions
+    const auto n = numberOfPoints_;
 
+    hValues_.resize(n - 1);
+    for (std::size_t i = 0; i < n - 1; ++i)
+    {
+        hValues_[i] = xValues_[i + 1] - xValues_[i];
+    }
+
+    const std::size_t systemSize = n;
+    mainDiag_.resize(systemSize);
+    lowerDiag_.resize(systemSize - 1);
+    upperDiag_.resize(systemSize - 1);
+    rhs_.resize(systemSize);
+
+    // first boundary equation (i=0)
+    mainDiag_[0] = 2.0 * hValues_[0];
+    upperDiag_[0] = hValues_[0];
+    rhs_[0] = 6.0 * ((yValues_[1] - yValues_[0]) / hValues_[0] - leftSlope_);
+    
+    // last boundary equation (i=n-1)
+    mainDiag_[n - 1] = 2.0 * hValues_[n - 2];
+    lowerDiag_[n - 2] = hValues_[n - 2];
+    rhs_[n - 1] = 6.0 * (rightSlope_ -
+                         (yValues_[n - 1] - yValues_[n - 2]) / hValues_[n - 2]);
+
+    for (std::size_t i = 1; i < systemSize - 1; ++i)
+    {
+        mainDiag_[i] = 2.0 * (hValues_[i - 1] + hValues_[i]);
+        lowerDiag_[i - 1] = hValues_[i - 1];
+        upperDiag_[i] = hValues_[i];
+
+        const auto fForward = (yValues_[i + 1] - yValues_[i]) / hValues_[i];
+        const auto fBackward = (yValues_[i] - yValues_[i - 1]) / hValues_[i - 1];
+        rhs_[i] = 6.0 * (fForward - fBackward);
+    }
 }
+
+void CubicSpline::setupSystemNatural()
+{
+    // 在自然边界条件中，M0 = 0 和 Mn = 0，只需求解中间的 n-2 个方程
+    // Set up the system of equations for natural boundary conditions
+    const auto n = numberOfPoints_; // we have n data points
+
+    hValues_.resize(n - 1); 
+    for (std::size_t i = 0; i < n - 1; ++i)
+    {
+        hValues_[i] = xValues_[i + 1] - xValues_[i];
+    }
+
+    // allocate space for the tridiagonal matrix and right-hand side
+    const std::size_t systemSize = n - 2;
+    mainDiag_.resize(systemSize);
+    lowerDiag_.resize(systemSize - 1);
+    upperDiag_.resize(systemSize - 1);
+    rhs_.resize(systemSize);
+
+    for (std::size_t i = 0; i < systemSize; ++i)
+    {
+        // Fill in the tridiagonal matrix and rhs based on natural conditions
+        // 因为我们只解中间的 n-2 个方程，索引需要偏移 1
+        // i 对应方程中索引 i 的方程，对应数据点索引 dataIndex = i + 1
+        const std::size_t dataIndex = i + 1;
+        // main diagonal = 2 * (h[i] + h[i+1])
+        mainDiag_[i] = 2.0 * (hValues_[dataIndex - 1] + hValues_[dataIndex]);
+        // rhs = 6 * (y[i+1] - y[i]) / h[i] - 6 * (y[i] - y[i-1]) / h[i-1]
+        const auto fForward = (yValues_[dataIndex + 1] - yValues_[dataIndex]) /
+                              hValues_[dataIndex];
+        const auto fBackward = (yValues_[dataIndex] - yValues_[dataIndex - 1]) /
+                               hValues_[dataIndex - 1];
+        rhs_[i] = 6.0 * (fForward - fBackward);
+
+        // upper and lower diagonals
+        if (i < systemSize - 1)
+        {
+            upperDiag_[i] = hValues_[dataIndex];
+        }
+        if (i > 0)
+        {
+            lowerDiag_[i - 1] = hValues_[dataIndex - 1];
+        }
+    }
+}
+
 
 void CubicSpline::setupSystemNotAKnot()
 {
-    
+    const auto n = numberOfPoints_;
+
+    hValues_.resize(n - 1);
+    for (std::size_t i = 0; i < n - 1; ++i)
+    {
+        hValues_[i] = xValues_[i + 1] - xValues_[i];
+    }
 }
