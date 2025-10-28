@@ -41,7 +41,9 @@ public:
     // Set boundary conditions
     void setBoundaryConditions(BoundaryType type, double firstValue,
                                double secondValue);
-    void setNaturalBoundary(); // Natural (second derivative = 0 at endpoints)
+
+    // print debug info
+    void printDebugInfo() const;
 
 private:
     std::vector<double> xValues_; // x coordinates of data points
@@ -60,6 +62,7 @@ private:
     std::vector<double> mainDiag_;  // main diagonal
     std::vector<double> upperDiag_; // upper diagonal (super-diagonal)
     std::vector<double> rhs_;       // right-hand side vector
+    std::vector<double> solution_;  // solution vector for c coefficients
 
     int numberOfPoints_; // number of data points
     bool boundarySet_;   // flag to check if boundary conditions are set
@@ -67,16 +70,16 @@ private:
 
     // Helper methods
     void setupSystem();      // Set up the tridiagonal system
-    void solveTridiagonal(); // Solve the tridiagonal system for c coefficients
+    std::vector<double> solveTridiagonal(); // Solve the tridiagonal system for c coefficients
     void computeCoefficients(); // Compute b and d coefficients from c
                                 // coefficients
-    void checkInputs()
-        const; // Validate input data (sizes, finiteness, strict monotonicity)
+    void checkInputs() const; // Validate input data (sizes, finiteness, strict monotonicity)
 
     // setupSystem with boundary conditions
     void setupSystemNatural();
     void setupSystemClamped();
     void setupSystemNotAKnot();
+    
 };
 
 #endif // CUBIC_SPLINE_H
