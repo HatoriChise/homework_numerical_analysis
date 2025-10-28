@@ -1,4 +1,4 @@
-#include <system_equation.h>
+#include "SystemEquation.h"
 #include <iostream>
 
 void test_system_equation()
