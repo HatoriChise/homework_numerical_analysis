@@ -3,28 +3,25 @@
 
 #include <vector>
 #include <stdexcept>
+#include <iostream>
 
 namespace tinyLinAlg
 {
 
-template <typename T>
 class Matrix
 { 
 private:
-    using Matrix = std::vector<std::vector<T>>;
-    Matrix data_;
+
+    std::vector<std::vector<double>> data_;
     size_t rows_;
     size_t cols_;
 
 public:
     // default constructor
-    Matrix() = default;
+    Matrix() ;
 
     // constructor with initial value, rows and columns
-    Matrix(size_t rows, size_t cols, T initialValue = T())
-    {
-        data_.resize(rows, std::vector<T>(cols, initialValue));
-    }
+    Matrix(size_t rows, size_t cols, double initialValue = 0.0);
 
     virtual ~Matrix() = default;
 
@@ -46,14 +43,14 @@ public:
 
 
     // get element at (row, col)
-    const T& operator()(size_t row, size_t col) const;
-    T& operator()(size_t row, size_t col);
-
-    void resize(size_t newRows, size_t newCols, T initialValue = T());
-    std::vector<T> flatten() const;
-
+    const double& operator()(size_t row, size_t col) const;
+    double& operator()(size_t row, size_t col);
+    void resize(size_t newRows, size_t newCols, double initialValue = 0.0);
+    std::vector<double> flatten() const;
     void print() const;
 };
+
+
 
 } // namespace tinyLinAlg
 #endif // MATRIX_H

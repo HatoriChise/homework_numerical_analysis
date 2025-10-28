@@ -3,18 +3,16 @@
 namespace tinyLinAlg
 {
 
-template <typename T> Matrix<T>::Matrix() : rows_(0), cols_(0)
+Matrix::Matrix() : data_(), rows_(0), cols_(0)
 {
 }
 
-template <typename T>
-Matrix<T>::Matrix(size_t rows, size_t cols, T initialValue)
-    : rows_(rows), cols_(cols), data_(rows, std::vector<T>(cols, initialValue))
+Matrix::Matrix(size_t rows, size_t cols, double initialValue)
+    : data_(rows, std::vector<double>(cols, initialValue)), rows_(rows), cols_(cols)
 {
 }
 
-template <typename T>
-const T& Matrix<T>::operator()(size_t row, size_t col) const
+const double& Matrix::operator()(size_t row, size_t col) const
 {
     if (row >= rows_ || col >= cols_)
     {
@@ -23,14 +21,12 @@ const T& Matrix<T>::operator()(size_t row, size_t col) const
     return data_.at(row).at(col);
 }
 
-template <typename T>
- T& Matrix<T>::operator()(size_t row, size_t col)
+double& Matrix::operator()(size_t row, size_t col)
 {
-    return const_cast<T&>(static_cast<const Matrix<T>&>(*this)(row, col));
+    return const_cast<double&>(static_cast<const Matrix&>(*this)(row, col));
 }
 
-template <typename T>
-void Matrix<T>::resize(size_t newRows, size_t newCols, T initialValue)
+void Matrix::resize(size_t newRows, size_t newCols, double initialValue)
 {
     data_.resize(newRows);
     for (auto& row : data_)
@@ -41,10 +37,9 @@ void Matrix<T>::resize(size_t newRows, size_t newCols, T initialValue)
     cols_ = newCols;
 }
 
-template <typename T>
-std::vector<T> Matrix<T>::flatten() const
+std::vector<double> Matrix::flatten() const
 {
-    std::vector<T> flattened;
+    std::vector<double> flattened;
     flattened.resize(rows_ * cols_);
 
     for (const auto& row : data_)
@@ -54,9 +49,8 @@ std::vector<T> Matrix<T>::flatten() const
     return flattened;
 } 
 
-template <typename T>
-void Matrix<T>::print() const
-{ 
+void Matrix::print() const
+{
     for (const auto& row : data_)
     {
         std::cout << "| ";
@@ -69,5 +63,4 @@ void Matrix<T>::print() const
     }
 }
 
-}// namespace tinyLinAlg
-
+}
