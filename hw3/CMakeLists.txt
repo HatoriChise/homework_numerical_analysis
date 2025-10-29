@@ -11,10 +11,12 @@ set(SOURCES
     src/SystemEquation.cpp
     src/Matrix.cpp
     src/main.cpp
+    src/solver/SORSolver.cpp
 )
 
 set(CORE_SOURCES
     src/SystemEquation.cpp
+    src/solver/SORSolver.cpp
     src/Matrix.cpp
 )
 
@@ -22,6 +24,7 @@ set(CORE_SOURCES
 set(HEADERS
     include/SystemEquation.h
     include/solver/LinearSolverBase.h
+    include/solver/SORSolver.h
     include/Matrix.h
 )
 

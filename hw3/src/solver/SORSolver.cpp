@@ -2,7 +2,7 @@
 
 #include <cmath>
 #include <iostream>
-#include "SORSolver.h"
+#include "solver/SORSolver.h"
 namespace tinyLinAlg
 {
 

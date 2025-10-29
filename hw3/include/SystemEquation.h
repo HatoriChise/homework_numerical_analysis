@@ -19,11 +19,27 @@ typedef std::vector<double> Vector;
 class SystemEquation
 {
 private:
-    std::unique_ptr<Matrix> matrix_; // coefficient matrix
-    std::unique_ptr<Vector> rhs_; // right-hand side vector 
+    std::unique_ptr<Matrix> matrix_;   // coefficient matrix
+    std::unique_ptr<Vector> rhs_;      // right-hand side vector
     std::unique_ptr<Vector> solution_; // solution vector
-public:
 
+    std::unique_ptr<LinearSolverBase> solver_;
+
+public:
+    explicit SystemEquation(std::unique_ptr<LinearSolverBase> solver = nullptr);
+
+    void setEquation(std::unique_ptr<Matrix> matrix,
+                     std::unique_ptr<Vector> rhs);
+
+    void setSolver(std::unique_ptr<LinearSolverBase> solver);
+    void solve();
+
+    [[nodiscard]]  Vector& getSolution() const;
+    [[nodiscard]]  bool isEquationSet() const
+    {
+        // if both matrix and rhs are set
+        return matrix_ != nullptr && rhs_ != nullptr;
+    }
 };
 } // namespace tinyLinAlg
 
