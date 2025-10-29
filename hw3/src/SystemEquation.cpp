@@ -1,5 +1,6 @@
 #include "SystemEquation.h"
 #include "solver/SORSolver.h"
+#include "solver/LUSolver.h"
 
 namespace tinyLinAlg
 {
@@ -17,9 +18,9 @@ SystemEquation::SystemEquation(std::unique_ptr<LinearSolverBase> solver)
 void SystemEquation::setEquation(std::unique_ptr<Matrix> matrix,
                                  std::unique_ptr<Vector> rhs)
 {
-    if (matrix->getRows() != matrix->getCols())
+    if(matrix->isSquare() == false)
     {
-        throw std::invalid_argument("Matrix must be square");
+        throw std::invalid_argument("Coefficient matrix must be square");
     }
     if (matrix->getRows() != rhs->size())
     {

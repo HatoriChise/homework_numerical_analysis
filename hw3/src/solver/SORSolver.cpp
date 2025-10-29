@@ -27,25 +27,6 @@ SORSolver::SORSolver(double omega, double tolerance, int maxIterations)
 
 void SORSolver::solve(const Matrix &A, const Vector &b, Vector &x)
 {
-    // Check Inputs
-    if(A.isSquare() == false)
-    {
-        throw std::invalid_argument("Matrix A must be square.");
-    }
-
-    if(A.getRows() != b.size())
-    {
-        throw std::invalid_argument("Dimension mismatch between A and b.");
-    }
-
-    for(size_t i = 0; i < A.getRows(); ++i)
-    {
-        if(std::abs(A(i, i)) < 1e-15)
-        {
-            throw std::invalid_argument("Matrix A has zero on diagonal, cannot proceed with SOR.");
-        }
-    }
-
     x.resize(A.getRows(), 0.0); // Initialize solution vector x to zero
 
     for(int iter = 0; iter < maxIterations_; ++iter)

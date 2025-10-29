@@ -2,6 +2,8 @@
 #include <iostream>
 #include "Matrix.h"
 #include "SystemEquation.h"
+#include "solver/SORSolver.h"
+#include "solver/LUSolver.h"
 
 void test_matrix()
 {
@@ -56,6 +58,10 @@ void test_system_equation()
 
     // Set the equation
     systemEq.setEquation(std::move(A), std::move(b));
+
+    // create and set a LUSolver
+    auto systemSolver = std::make_unique<LUSolver>();
+    systemEq.setSolver(std::move(systemSolver));
 
     // Solve the equation
     systemEq.solve();
