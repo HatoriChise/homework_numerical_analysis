@@ -35,7 +35,7 @@ void test_system_equation()
     auto A = std::make_unique<Matrix>(10, 10);
     const double a[100] = {
         1.05,  1.0,    0.0,   0.0,   0.0,   0.0,    0.0,   0.0,   0.0,  0.0,
-        0.007, -0.015, 0.0,   0.0,   0.0,   0.0,    0.0,   0.0,   0.0,  0.0,
+        0.0075, -0.015, 0.0,   0.0,   0.0,   0.0,    0.0,   0.0,   0.0,  0.0,
         -0.9,  0.0,    1.0,   1.0,   0.0,   0.0,    0.0,   0.0,   0.0,  0.0,
         0.0,   0.0,    0.017, -0.04, 0.0,   0.0,    0.0,   0.0,   0.0,  0.0,
         0.0,   0.0,    -0.85, 0.0,   1.0,   1.0,    0.0,   0.0,   0.0,  0.0,
@@ -50,7 +50,7 @@ void test_system_equation()
 
     // 2. 10×1 右端向量
     auto b = std::make_unique<Vector>(
-        Vector{500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+        Vector{505.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
     // 3. 打印系数矩阵
     A->print();
     // Create SystemEquation with default SORSolver
@@ -60,7 +60,8 @@ void test_system_equation()
     systemEq.setEquation(std::move(A), std::move(b));
 
     // create and set a LUSolver
-    auto systemSolver = std::make_unique<LUSolver>();
+    auto systemSolver 
+                    = std::make_unique<LUSolver>();
     systemEq.setSolver(std::move(systemSolver));
 
     // Solve the equation
