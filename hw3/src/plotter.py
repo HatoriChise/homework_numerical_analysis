@@ -9,7 +9,7 @@ from scipy.integrate import solve_ivp
 
 
 class Plotter:
-    def __init__(self, output_dir: str = "../picture"):
+    def __init__(self, output_dir: str = "hw3/picture"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
 

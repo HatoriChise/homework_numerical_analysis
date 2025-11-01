@@ -16,7 +16,7 @@ def integrand(x):
 def main():
     a, b = 0, 100
     tol = 1e-12
-    max_iter = 8  # Romberg 表最大 8x8（通常 5~7 次已足够高精度）
+    max_iter = 10  # Romberg 表最大 8x8（通常 5~7 次已足够高精度）
 
     # 创建积分器
     integrator = Integrator(func=integrand, a=a, b=b, tol=tol, max_iter=max_iter)
@@ -38,6 +38,8 @@ def main():
     Ploter.plot_convergence(
         history, title="Romberg Integration Convergence for Given Integral"
     )
+
+    Ploter.plot_integrand()
 
 
 if __name__ == "__main__":

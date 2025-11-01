@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy.integrate import solve_ivp
 
 # 全局参数（用于 solve 和 solve_scipy）
-P0 = 1e4
+P0 = 1e7
 omega = np.pi / 100
 t_max = 500
 heatcoeff = 0.05
@@ -76,7 +76,7 @@ def plot_error_near_discontinuity(t_scipy, error, t_max=500):
     # 保存（确保目录存在）
     from pathlib import Path
 
-    output_dir = Path("../picture")
+    output_dir = Path("hw3/picture")
     output_dir.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_dir / "error_spike.png", dpi=300)
     plt.close()
@@ -98,10 +98,10 @@ if __name__ == "__main__":
 
     # Plot parameter sensitivity
     param_cases = [
-        {"heatcoeff": 0.05, "P0": 1e4, "label": "P0=1e4, α=0.05"},
-        {"heatcoeff": 0.02, "P0": 1e4, "label": "P0=1e4, α=0.02"},
-        {"heatcoeff": 0.05, "P0": 2e4, "label": "P0=2e4, α=0.05"},
-        {"heatcoeff": 0.02, "P0": 2e4, "label": "P0=2e4, α=0.02"},
+        {"heatcoeff": 0.05, "P0": 1e7, "label": "P0=1e7, α=0.05"},
+        {"heatcoeff": 0.02, "P0": 1e7, "label": "P0=1e7, α=0.02"},
+        {"heatcoeff": 0.05, "P0": 2e7, "label": "P0=2e7, α=0.05"},
+        {"heatcoeff": 0.02, "P0": 2e7, "label": "P0=2e7, α=0.02"},
     ]
     plotter.plot_param_sensitivity(
         param_sets=param_cases,
